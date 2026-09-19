@@ -1,0 +1,12 @@
+{
+  "required": false,
+  "package": "bwead.bweadclient.mixin.indigo",
+  "compatibilityLevel": "JAVA_21",
+  "plugin": "bwead.bweadclient.MixinPlugin",
+  "client": [
+    "AltModelBlockRendererImplMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

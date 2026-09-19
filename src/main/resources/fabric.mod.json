@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "name": "Bwead Client",
+  "id": "bwead-client",
+  "version": "${version}",
+  "description": "Based utility mod.",
+  "authors": [
+    "MineGame159",
+    "squidoodly",
+    "seasnail"
+  ],
+  "contact": {
+    "homepage": "https://meteorclient.com",
+    "issues": "https://github.com/MeteorDevelopment/meteor-client/issues",
+    "sources": "https://github.com/MeteorDevelopment/meteor-client",
+    "discord": "https://meteorclient.com/discord"
+  },
+  "license": "GPL-3.0",
+  "icon": "assets/bwead-client/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "bwead.bweadclient.BweadClient"
+    ],
+    "modmenu": [
+      "bwead.bweadclient.modintegration.ModMenuIntegration"
+    ]
+  },
+  "mixins": [
+    "bwead-client.mixins.json",
+    "bwead-client-baritone.mixins.json",
+    "bwead-client-indigo.mixins.json",
+    "bwead-client-sodium.mixins.json",
+    "bwead-client-lithium.mixins.json",
+    "bwead-client-viafabricplus.mixins.json"
+  ],
+  "accessWidener": "bwead-client.classtweaker",
+  "custom": {
+    "bwead-client:build_number": "${build_number}",
+    "bwead-client:color": "145,61,226",
+    "bwead-client:commit": "${commit}",
+    "modmenu": {
+      "links": {
+        "modmenu.discord": "https://meteorclient.com/discord"
+      }
+    },
+    "badoptimizations:cache_hooks": {
+      "lightmap": "bwead.bweadclient.modintegration.BadOptimizationsHook"
+    }
+  },
+  "depends": {
+    "java": ">=${jdk_version}",
+    "minecraft": "${minecraft_version}",
+    "fabricloader": ">=${loader_version}"
+  },
+  "breaks": {
+    "optifabric": "*",
+    "feather": "*",
+    "origins": "*",
+    "sodium": "<0.9.1",
+    "morechathistory": "*",
+    "lithium": "<0.22.1"
+  }
+}

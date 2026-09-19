@@ -1,0 +1,12 @@
+{
+  "required": false,
+  "package": "bwead.bweadclient.mixin.viafabricplus",
+  "compatibilityLevel": "JAVA_21",
+  "plugin": "bwead.bweadclient.MixinPlugin",
+  "client": [
+    "GeneralSettingsMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
