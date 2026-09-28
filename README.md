@@ -14,6 +14,7 @@ Star Client ships with these Meteor addons included (jar-in-jar):
 - [Meteor Rejects](https://github.com/AntiCope/meteor-rejects)
 - [Meteorist](https://github.com/zgoly/Meteorist)
 - [Numby Hack](https://github.com/cqb13/Numby-Hack)
+- [Trouser Streak](https://github.com/pwnoobs/trouser-streak)
 - Zinc / SweetMods
 
 ## Usage
