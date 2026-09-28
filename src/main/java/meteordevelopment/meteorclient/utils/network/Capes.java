@@ -45,32 +45,8 @@ public class Capes {
         TO_RETRY.clear();
         TO_REMOVE.clear();
 
-        MeteorExecutor.execute(() -> {
-            // Cape owners
-            Stream<String> lines = Http.get(CAPE_OWNERS_URL)
-                .exceptionHandler(e -> MeteorClient.LOG.error("Could not load capes: {}",  e.getMessage()))
-                .sendLines();
-            if (lines != null) {
-                lines.forEach(s -> {
-                    String[] split = s.split(" ");
-
-                    if (split.length >= 2) {
-                        OWNERS.put(UUID.fromString(split[0]), split[1]);
-                        if (!TEXTURES.containsKey(split[1])) TEXTURES.put(split[1], new Cape(split[1]));
-                    }
-                });
-            } else return;
-
-            // Capes
-            lines = Http.get(CAPES_URL).sendLines();
-            if (lines != null) lines.forEach(s -> {
-                String[] split = s.split(" ");
-
-                if (split.length >= 2) {
-                    if (!URLS.containsKey(split[0])) URLS.put(split[0], split[1]);
-                }
-            });
-        });
+        // Cape fetching from Meteor's servers is disabled so this client does not
+        // contact meteorclient.com (separate footprint). No capes are loaded.
 
         MeteorClient.EVENT_BUS.subscribe(Capes.class);
     }

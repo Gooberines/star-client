@@ -11,17 +11,11 @@ public class OnlinePlayers {
     private OnlinePlayers() {
     }
 
+    // Online-player tracking to Meteor's servers is disabled so this client does
+    // not report itself to meteorclient.com (separate footprint).
     public static void update() {
-        long time = System.currentTimeMillis();
-
-        if (time - lastPingTime > 5 * 60 * 1000) {
-            MeteorExecutor.execute(() -> Http.post("https://meteorclient.com/api/online/ping").ignoreExceptions().send());
-
-            lastPingTime = time;
-        }
     }
 
     public static void leave() {
-        MeteorExecutor.execute(() -> Http.post("https://meteorclient.com/api/online/leave").ignoreExceptions().send());
     }
 }
