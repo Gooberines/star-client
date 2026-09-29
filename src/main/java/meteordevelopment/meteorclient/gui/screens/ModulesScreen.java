@@ -365,9 +365,10 @@ public class ModulesScreen extends TabScreen {
             double contentWidth = selected != null ? selected.width : 0;
             double groupWidth = tabBar.width + gap + contentWidth;
 
+            // Central menu on the left, vertical tab strip on the far (right) side.
             double startX = Math.max(pad, windowWidth / 2.0 - groupWidth / 2.0);
-            double tabX = startX;
-            double contentX = startX + tabBar.width + gap;
+            double contentX = startX;
+            double tabX = startX + contentWidth + gap;
 
             double tabY = Math.max(pad, windowHeight / 2.0 - tabBar.height / 2.0);
 
