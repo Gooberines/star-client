@@ -259,9 +259,6 @@ public class ModulesScreen extends TabScreen {
 
             refresh();
             buildTabs();
-
-            // Default to the first category tab.
-            select(windows.isEmpty() ? null : windows.getFirst());
         }
 
         protected void refresh() {
@@ -281,26 +278,39 @@ public class ModulesScreen extends TabScreen {
             if (tabBar != null) buildTabs();
         }
 
+        /** Category windows are the WWindow children of this container (authoritative; never null). */
+        private List<WWindow> tabWindows() {
+            List<WWindow> list = new ArrayList<>();
+            for (Cell<?> cell : cells) {
+                if (cell.widget() instanceof WWindow window) list.add(window);
+            }
+            return list;
+        }
+
         private void buildTabs() {
+            if (tabBar == null) return;
             tabBar.clear();
 
-            for (WWindow window : windows) {
+            List<WWindow> tabs = tabWindows();
+            for (WWindow window : tabs) {
                 WButton button = tabBar.add(theme.button(tabName(window))).widget();
                 button.action = () -> select(window);
+            }
+
+            // Keep a valid selection.
+            if (selected == null || !tabs.contains(selected)) {
+                select(tabs.isEmpty() ? null : tabs.getFirst());
             }
         }
 
         private void select(WWindow window) {
             selected = window;
-
-            // Only the selected category's window is visible (browser-style tabs).
-            for (WWindow w : windows) w.visible = (w == window);
             if (window != null) window.setExpanded(true);
-
             invalidate();
         }
 
         private String tabName(WWindow window) {
+            if (window == null) return "?";
             String s = window.id;
             if (s == null || s.isEmpty()) return "?";
             return Character.toUpperCase(s.charAt(0)) + s.substring(1);
@@ -319,23 +329,28 @@ public class ModulesScreen extends TabScreen {
             for (Cell<?> cell : cells) {
                 WWidget widget = cell.widget();
 
-                double cx, cy;
                 if (widget == tabBar) {
-                    cx = tabX;
-                    cy = tabY;
+                    cell.x = tabX;
+                    cell.y = tabY;
                 }
-                else if (widget == selected) {
-                    cx = Math.max(pad, windowWidth / 2.0 - widget.width / 2.0);
-                    cy = contentY;
+                else if (widget instanceof WWindow window) {
+                    // Only the selected category's window is shown; others are hidden.
+                    boolean show = (window == selected);
+                    window.visible = show;
+
+                    if (show) {
+                        cell.x = Math.max(pad, windowWidth / 2.0 - widget.width / 2.0);
+                        cell.y = contentY;
+                    } else {
+                        cell.x = -100000;
+                        cell.y = -100000;
+                    }
                 }
                 else {
-                    // Non-selected windows are hidden; park them off-screen so they don't render.
-                    cx = -100000;
-                    cy = -100000;
+                    cell.x = this.x;
+                    cell.y = this.y;
                 }
 
-                cell.x = cx;
-                cell.y = cy;
                 cell.width = widget.width;
                 cell.height = widget.height;
 
