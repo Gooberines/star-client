@@ -60,6 +60,18 @@ public class MeteorGuiTheme extends GuiTheme {
         .build()
     );
 
+    public final Setting<Double> roundness = sgGeneral.add(new DoubleSetting.Builder()
+        .name("roundness")
+        .description("Corner radius of GUI panels and buttons.")
+        .defaultValue(5)
+        .min(0)
+        .sliderRange(0, 12)
+        .onChanged(aDouble -> {
+            if (mc.currentScreen instanceof WidgetScreen) ((WidgetScreen) mc.currentScreen).invalidate();
+        })
+        .build()
+    );
+
     public final Setting<AlignmentX> moduleAlignment = sgGeneral.add(new EnumSetting.Builder<AlignmentX>()
         .name("module-alignment")
         .description("How module titles are aligned.")
@@ -86,8 +98,9 @@ public class MeteorGuiTheme extends GuiTheme {
 
     // Colors
 
-    public final Setting<SettingColor> accentColor = color("accent", "Main color of the GUI.", new SettingColor(122, 103, 232));
-    public final Setting<SettingColor> checkboxColor = color("checkbox", "Color of checkbox.", new SettingColor(122, 103, 232));
+    public final Setting<SettingColor> accentColor = color("accent", "Main color of the GUI.", new SettingColor(236, 110, 200));
+    public final Setting<SettingColor> accentColor2 = color("accent-secondary", "Secondary accent color used for gradients.", new SettingColor(96, 150, 245));
+    public final Setting<SettingColor> checkboxColor = color("checkbox", "Color of checkbox.", new SettingColor(150, 110, 235));
     public final Setting<SettingColor> plusColor = color("plus", "Color of plus button.", new SettingColor(50, 255, 50));
     public final Setting<SettingColor> minusColor = color("minus", "Color of minus button.", new SettingColor(255, 50, 50));
     public final Setting<SettingColor> favoriteColor = color("favorite", "Color of checked favorite button.", new SettingColor(250, 215, 0));
@@ -95,7 +108,7 @@ public class MeteorGuiTheme extends GuiTheme {
     // Text
 
     public final Setting<SettingColor> textColor = color(sgTextColors, "text", "Color of text.", new SettingColor(255, 255, 255));
-    public final Setting<SettingColor> textSecondaryColor = color(sgTextColors, "text-secondary-text", "Color of secondary text.", new SettingColor(150, 150, 150));
+    public final Setting<SettingColor> textSecondaryColor = color(sgTextColors, "text-secondary-text", "Color of secondary text.", new SettingColor(185, 180, 215));
     public final Setting<SettingColor> textHighlightColor = color(sgTextColors, "text-highlight", "Color of text highlighting.", new SettingColor(45, 125, 245, 100));
     public final Setting<SettingColor> titleTextColor = color(sgTextColors, "title-text", "Color of title text.", new SettingColor(255, 255, 255));
     public final Setting<SettingColor> loggedInColor = color(sgTextColors, "logged-in-text", "Color of logged in account name.", new SettingColor(45, 225, 45));
@@ -106,21 +119,21 @@ public class MeteorGuiTheme extends GuiTheme {
     public final ThreeStateColorSetting backgroundColor = new ThreeStateColorSetting(
             sgBackgroundColors,
             "background",
-            new SettingColor(20, 20, 20, 200),
-            new SettingColor(30, 30, 30, 200),
-            new SettingColor(40, 40, 40, 200)
+            new SettingColor(28, 26, 48, 175),
+            new SettingColor(40, 36, 68, 190),
+            new SettingColor(54, 48, 92, 205)
     );
 
-    public final Setting<SettingColor> moduleBackground = color(sgBackgroundColors, "module-background", "Color of module background when active.", new SettingColor(50, 50, 50));
+    public final Setting<SettingColor> moduleBackground = color(sgBackgroundColors, "module-background", "Color of module background when active.", new SettingColor(120, 95, 215, 185));
 
     // Outline
 
     public final ThreeStateColorSetting outlineColor = new ThreeStateColorSetting(
             sgOutline,
             "outline",
-            new SettingColor(0, 0, 0),
-            new SettingColor(10, 10, 10),
-            new SettingColor(20, 20, 20)
+            new SettingColor(255, 255, 255, 30),
+            new SettingColor(255, 255, 255, 55),
+            new SettingColor(255, 255, 255, 85)
     );
 
     // Separator
@@ -134,9 +147,9 @@ public class MeteorGuiTheme extends GuiTheme {
     public final ThreeStateColorSetting scrollbarColor = new ThreeStateColorSetting(
             sgScrollbar,
             "Scrollbar",
-            new SettingColor(30, 30, 30, 200),
-            new SettingColor(40, 40, 40, 200),
-            new SettingColor(50, 50, 50, 200)
+            new SettingColor(150, 130, 230, 130),
+            new SettingColor(175, 150, 240, 165),
+            new SettingColor(200, 175, 250, 200)
     );
 
     // Slider
@@ -144,13 +157,13 @@ public class MeteorGuiTheme extends GuiTheme {
     public final ThreeStateColorSetting sliderHandle = new ThreeStateColorSetting(
             sgSlider,
             "slider-handle",
-            new SettingColor(130, 0, 255),
-            new SettingColor(140, 30, 255),
-            new SettingColor(150, 60, 255)
+            new SettingColor(240, 240, 255),
+            new SettingColor(255, 255, 255),
+            new SettingColor(255, 255, 255)
     );
 
-    public final Setting<SettingColor> sliderLeft = color(sgSlider, "slider-left", "Color of slider left part.", new SettingColor(100,35,170));
-    public final Setting<SettingColor> sliderRight = color(sgSlider, "slider-right", "Color of slider right part.", new SettingColor(50, 50, 50));
+    public final Setting<SettingColor> sliderLeft = color(sgSlider, "slider-left", "Color of slider left part.", new SettingColor(236, 110, 200));
+    public final Setting<SettingColor> sliderRight = color(sgSlider, "slider-right", "Color of slider right part.", new SettingColor(70, 62, 108, 180));
 
     // Starscript
 
@@ -375,6 +388,11 @@ public class MeteorGuiTheme extends GuiTheme {
         }
 
         return scaled;
+    }
+
+    /** Corner radius in scaled pixels for rounded panels/buttons. */
+    public double round() {
+        return scale(roundness.get());
     }
 
     @Override

@@ -244,6 +244,74 @@ public class GuiRenderer {
         r.triangle(x1, y1, x2, y2, x3, y3 ,color);
     }
 
+    // --- Rounded rectangles (glassmorphism UI) ---
+
+    private static Color lerpColor(Color a, Color b, double t) {
+        if (t <= 0) return a;
+        if (t >= 1) return b;
+        return new Color(
+            (int) Math.round(a.r + (b.r - a.r) * t),
+            (int) Math.round(a.g + (b.g - a.g) * t),
+            (int) Math.round(a.b + (b.b - a.b) * t),
+            (int) Math.round(a.a + (b.a - a.a) * t)
+        );
+    }
+
+    private void cornerFan(double cx, double cy, double radius, double fromDeg, double toDeg, Color color) {
+        int segments = Math.max(4, (int) Math.ceil(radius / 1.5));
+        double from = Math.toRadians(fromDeg);
+        double step = Math.toRadians(toDeg - fromDeg) / segments;
+        for (int i = 0; i < segments; i++) {
+            double a1 = from + step * i;
+            double a2 = from + step * (i + 1);
+            triangle(cx, cy,
+                cx + Math.cos(a1) * radius, cy + Math.sin(a1) * radius,
+                cx + Math.cos(a2) * radius, cy + Math.sin(a2) * radius,
+                color);
+        }
+    }
+
+    public void roundedQuad(double x, double y, double width, double height, double radius, Color color) {
+        roundedQuad(x, y, width, height, radius, true, true, color, color);
+    }
+
+    public void roundedQuad(double x, double y, double width, double height, double radius, Color left, Color right) {
+        roundedQuad(x, y, width, height, radius, true, true, left, right);
+    }
+
+    /** Rounded rect with an optional horizontal gradient. roundTop/roundBottom pick which corners are rounded. */
+    public void roundedQuad(double x, double y, double width, double height, double radius, boolean roundTop, boolean roundBottom, Color left, Color right) {
+        double rad = Math.min(radius, Math.min(width, height) / 2.0);
+        if (rad <= 0.75) {
+            quad(x, y, width, height, left, right, right, left);
+            return;
+        }
+
+        Color innerL = lerpColor(left, right, rad / width);
+        Color innerR = lerpColor(left, right, (width - rad) / width);
+
+        // Center column spans full height; side columns span between the corner cells.
+        quad(x + rad, y, width - rad * 2, height, innerL, innerR, innerR, innerL);
+        quad(x, y + rad, rad, height - rad * 2, left, innerL, innerL, left);
+        quad(x + width - rad, y + rad, rad, height - rad * 2, innerR, right, right, innerR);
+
+        // Corner cells: rounded (fan) or square depending on flags.
+        if (roundTop) {
+            cornerFan(x + rad, y + rad, rad, 180, 270, left);
+            cornerFan(x + width - rad, y + rad, rad, 270, 360, right);
+        } else {
+            quad(x, y, rad, rad, left, left, left, left);
+            quad(x + width - rad, y, rad, rad, right, right, right, right);
+        }
+        if (roundBottom) {
+            cornerFan(x + width - rad, y + height - rad, rad, 0, 90, right);
+            cornerFan(x + rad, y + height - rad, rad, 90, 180, left);
+        } else {
+            quad(x, y + height - rad, rad, rad, left, left, left, left);
+            quad(x + width - rad, y + height - rad, rad, rad, right, right, right, right);
+        }
+    }
+
     public void text(String text, double x, double y, Color color, boolean title) {
         texts.add(getOp(textPool, x, y, color).set(text, theme.textRenderer(), title));
     }

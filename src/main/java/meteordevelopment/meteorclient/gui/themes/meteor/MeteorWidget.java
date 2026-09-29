@@ -18,13 +18,11 @@ public interface MeteorWidget extends BaseWidget {
     default void renderBackground(GuiRenderer renderer, WWidget widget, Color outlineColor, Color backgroundColor) {
         MeteorGuiTheme theme = theme();
         double s = theme.scale(2);
+        double r = theme.round();
 
-        renderer.quad(widget.x + s, widget.y + s, widget.width - s * 2, widget.height - s * 2, backgroundColor);
-
-        renderer.quad(widget.x, widget.y, widget.width, s, outlineColor);
-        renderer.quad(widget.x, widget.y + widget.height - s, widget.width, s, outlineColor);
-        renderer.quad(widget.x, widget.y + s, s, widget.height - s * 2, outlineColor);
-        renderer.quad(widget.x + widget.width - s, widget.y + s, s, widget.height - s * 2, outlineColor);
+        // Glass edge (outline) then the translucent rounded fill inset within it.
+        renderer.roundedQuad(widget.x, widget.y, widget.width, widget.height, r, outlineColor);
+        renderer.roundedQuad(widget.x + s, widget.y + s, widget.width - s * 2, widget.height - s * 2, Math.max(0, r - s), backgroundColor);
     }
 
     default void renderBackground(GuiRenderer renderer, WWidget widget, boolean pressed, boolean mouseOver) {
