@@ -25,6 +25,7 @@ import meteordevelopment.meteorclient.systems.modules.Category;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.meteorclient.utils.misc.NbtUtils;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.util.MacWindowUtil;
 import net.minecraft.item.Items;
@@ -228,6 +229,17 @@ public class ModulesScreen extends TabScreen {
     public void reload() {
     }
 
+    // Liquid-glass full-screen backdrop: blur whatever is behind, then a soft gradient tint.
+    private static final int GLASS_TOP = 0xC8_8A8FD8;    // periwinkle
+    private static final int GLASS_BOTTOM = 0xC8_9B8AC4; // dusty violet (~78% opacity)
+
+    @Override
+    public void renderBackground(DrawContext context, int mouseX, int mouseY, float deltaTicks) {
+        super.renderBackground(context, mouseX, mouseY, deltaTicks); // panorama when no world
+        context.applyBlur();                                          // frost the game/panorama behind
+        context.fillGradient(0, 0, context.getScaledWindowWidth(), context.getScaledWindowHeight(), GLASS_TOP, GLASS_BOTTOM);
+    }
+
     // Stuff
 
     protected class WCategoryController extends WContainer {
@@ -338,40 +350,17 @@ public class ModulesScreen extends TabScreen {
 
         @Override
         protected void onRender(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
-            if (tabBar == null) return;
+            // Active-tab indicator: accent pill on the inner edge of the selected tab.
+            if (selectedButton == null) return;
 
-            // --- Glass backdrop panel behind the whole menu (tabs + central module menu) ---
-            // Drawn before children, so the tab strip and module window sit on top of it.
-            double bpad = theme.scale(10);
-            double minX = tabBar.x, minY = tabBar.y;
-            double maxX = tabBar.x + tabBar.width, maxY = tabBar.y + tabBar.height;
+            Color accent = theme instanceof MeteorGuiTheme mgt ? mgt.accentColor.get() : Color.WHITE;
+            Color accent2 = theme instanceof MeteorGuiTheme mgt2 ? mgt2.accentColor2.get() : accent;
 
-            if (selected != null && selected.visible) {
-                minX = Math.min(minX, selected.x);
-                minY = Math.min(minY, selected.y);
-                maxX = Math.max(maxX, selected.x + selected.width);
-                maxY = Math.max(maxY, selected.y + selected.height);
-            }
+            double bh = selectedButton.height;
+            double barW = theme.scale(3);
+            double barX = selectedButton.x + selectedButton.width + theme.scale(2);
 
-            double gx = minX - bpad, gy = minY - bpad;
-            double gw = (maxX - minX) + bpad * 2, gh = (maxY - minY) + bpad * 2;
-            double gr = theme.scale(12);
-
-            // Frosted glass base + a faint sheen band along the top for a glassy sheen.
-            renderer.roundedQuad(gx, gy, gw, gh, gr, new Color(45, 40, 78, 150));
-            renderer.roundedQuad(gx, gy, gw, gh * 0.35, gr, true, false, new Color(255, 255, 255, 24), new Color(255, 255, 255, 24));
-
-            // --- Active-tab indicator: accent pill on the inner edge of the selected tab ---
-            if (selectedButton != null) {
-                Color accent = theme instanceof MeteorGuiTheme mgt ? mgt.accentColor.get() : Color.WHITE;
-                Color accent2 = theme instanceof MeteorGuiTheme mgt2 ? mgt2.accentColor2.get() : accent;
-
-                double bh = selectedButton.height;
-                double barW = theme.scale(3);
-                double barX = selectedButton.x + selectedButton.width + theme.scale(2);
-
-                renderer.roundedQuad(barX, selectedButton.y + bh * 0.12, barW, bh * 0.76, barW / 2.0, accent, accent2);
-            }
+            renderer.roundedQuad(barX, selectedButton.y + bh * 0.12, barW, bh * 0.76, barW / 2.0, accent, accent2);
         }
 
         @Override
