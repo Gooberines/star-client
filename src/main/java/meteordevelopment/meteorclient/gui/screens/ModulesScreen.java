@@ -338,20 +338,40 @@ public class ModulesScreen extends TabScreen {
 
         @Override
         protected void onRender(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
-            // Active-tab indicator: an accent pill in the gutter to the left of the selected tab.
-            // Drawn outside the button so it stays visible over the opaque button background.
-            if (selectedButton == null) return;
+            if (tabBar == null) return;
 
-            double by = selectedButton.y;
-            double bh = selectedButton.height;
+            // --- Glass backdrop panel behind the whole menu (tabs + central module menu) ---
+            // Drawn before children, so the tab strip and module window sit on top of it.
+            double bpad = theme.scale(10);
+            double minX = tabBar.x, minY = tabBar.y;
+            double maxX = tabBar.x + tabBar.width, maxY = tabBar.y + tabBar.height;
 
-            Color accent = theme instanceof MeteorGuiTheme mgt ? mgt.accentColor.get() : Color.WHITE;
-            Color accent2 = theme instanceof MeteorGuiTheme mgt2 ? mgt2.accentColor2.get() : accent;
+            if (selected != null && selected.visible) {
+                minX = Math.min(minX, selected.x);
+                minY = Math.min(minY, selected.y);
+                maxX = Math.max(maxX, selected.x + selected.width);
+                maxY = Math.max(maxY, selected.y + selected.height);
+            }
 
-            double barW = theme.scale(3);
-            double barX = selectedButton.x - theme.scale(5);
+            double gx = minX - bpad, gy = minY - bpad;
+            double gw = (maxX - minX) + bpad * 2, gh = (maxY - minY) + bpad * 2;
+            double gr = theme.scale(12);
 
-            renderer.roundedQuad(barX, by + bh * 0.12, barW, bh * 0.76, barW / 2.0, accent, accent2);
+            // Frosted glass base + a faint sheen band along the top for a glassy sheen.
+            renderer.roundedQuad(gx, gy, gw, gh, gr, new Color(45, 40, 78, 150));
+            renderer.roundedQuad(gx, gy, gw, gh * 0.35, gr, true, false, new Color(255, 255, 255, 24), new Color(255, 255, 255, 24));
+
+            // --- Active-tab indicator: accent pill on the inner edge of the selected tab ---
+            if (selectedButton != null) {
+                Color accent = theme instanceof MeteorGuiTheme mgt ? mgt.accentColor.get() : Color.WHITE;
+                Color accent2 = theme instanceof MeteorGuiTheme mgt2 ? mgt2.accentColor2.get() : accent;
+
+                double bh = selectedButton.height;
+                double barW = theme.scale(3);
+                double barX = selectedButton.x + selectedButton.width + theme.scale(2);
+
+                renderer.roundedQuad(barX, selectedButton.y + bh * 0.12, barW, bh * 0.76, barW / 2.0, accent, accent2);
+            }
         }
 
         @Override
@@ -365,10 +385,10 @@ public class ModulesScreen extends TabScreen {
             double contentWidth = selected != null ? selected.width : 0;
             double groupWidth = tabBar.width + gap + contentWidth;
 
-            // Central menu on the left, vertical tab strip on the far (right) side.
+            // Vertical tab strip on the left, big module menu on the right.
             double startX = Math.max(pad, windowWidth / 2.0 - groupWidth / 2.0);
-            double contentX = startX;
-            double tabX = startX + contentWidth + gap;
+            double tabX = startX;
+            double contentX = startX + tabBar.width + gap;
 
             double tabY = Math.max(pad, windowHeight / 2.0 - tabBar.height / 2.0);
 
