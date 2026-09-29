@@ -6,20 +6,15 @@
 package meteordevelopment.meteorclient.gui.screens;
 
 import meteordevelopment.meteorclient.gui.GuiTheme;
-import meteordevelopment.meteorclient.gui.renderer.GuiRenderer;
-import meteordevelopment.meteorclient.gui.themes.meteor.MeteorGuiTheme;
-import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.meteorclient.gui.tabs.TabScreen;
 import meteordevelopment.meteorclient.gui.tabs.Tabs;
 import meteordevelopment.meteorclient.gui.utils.Cell;
 import meteordevelopment.meteorclient.gui.widgets.WWidget;
 import meteordevelopment.meteorclient.gui.widgets.containers.WContainer;
-import meteordevelopment.meteorclient.gui.widgets.containers.WHorizontalList;
 import meteordevelopment.meteorclient.gui.widgets.containers.WSection;
 import meteordevelopment.meteorclient.gui.widgets.containers.WVerticalList;
 import meteordevelopment.meteorclient.gui.widgets.containers.WWindow;
 import meteordevelopment.meteorclient.gui.widgets.input.WTextBox;
-import meteordevelopment.meteorclient.gui.widgets.pressable.WButton;
 import meteordevelopment.meteorclient.systems.config.Config;
 import meteordevelopment.meteorclient.systems.modules.Category;
 import meteordevelopment.meteorclient.systems.modules.Module;
@@ -234,20 +229,12 @@ public class ModulesScreen extends TabScreen {
         public final List<WWindow> windows = new ArrayList<>();
         private Cell<WWindow> favorites;
 
-        private WHorizontalList tabBar;
-        private WWindow selected;
-
-        // Parallel lists of tab windows and their tab buttons, so the active tab can be highlighted.
-        private final List<WWindow> tabWins = new ArrayList<>();
-        private final List<WButton> tabBtns = new ArrayList<>();
-        private WButton selectedButton;
+        // Number of glass columns the category panels are balanced across (3-panel glass layout).
+        private static final int COLUMNS = 3;
 
         @Override
         public void init() {
-            // Tab bar sits above the content. Added first so it renders at the top.
-            tabBar = add(theme.horizontalList()).widget();
-
-            // Still create one window per category so addon mixins on createCategory keep working.
+            // One window per non-empty category. createCategory is also an addon mixin target.
             List<Module> moduleList = new ArrayList<>();
             for (Category category : Modules.loopCategories()) {
                 for (Module module : Modules.get().getGroup(category)) {
@@ -266,7 +253,6 @@ public class ModulesScreen extends TabScreen {
             windows.add(createSearch(this));
 
             refresh();
-            buildTabs();
         }
 
         protected void refresh() {
@@ -283,122 +269,68 @@ public class ModulesScreen extends TabScreen {
                 }
             }
 
-            if (tabBar != null) buildTabs();
-        }
-
-        /** Category windows are the WWindow children of this container (authoritative; never null). */
-        private List<WWindow> tabWindows() {
-            List<WWindow> list = new ArrayList<>();
-            for (Cell<?> cell : cells) {
-                if (cell.widget() instanceof WWindow window) list.add(window);
-            }
-            return list;
-        }
-
-        private void buildTabs() {
-            if (tabBar == null) return;
-            tabBar.clear();
-            tabWins.clear();
-            tabBtns.clear();
-
-            for (WWindow window : tabWindows()) {
-                WButton button = tabBar.add(theme.button(tabName(window))).widget();
-                button.action = () -> select(window);
-
-                tabWins.add(window);
-                tabBtns.add(button);
-            }
-
-            // Keep a valid selection.
-            if (selected == null || !tabWins.contains(selected)) {
-                select(tabWins.isEmpty() ? null : tabWins.getFirst());
-            } else {
-                updateSelectedButton();
-            }
-        }
-
-        private void select(WWindow window) {
-            selected = window;
-            if (window != null) window.setExpanded(true);
-            updateSelectedButton();
-            invalidate();
-        }
-
-        private void updateSelectedButton() {
-            int i = tabWins.indexOf(selected);
-            selectedButton = (i >= 0 && i < tabBtns.size()) ? tabBtns.get(i) : null;
-        }
-
-        private String tabName(WWindow window) {
-            if (window == null) return "?";
-            String s = window.id;
-            if (s == null || s.isEmpty()) return "?";
-            return Character.toUpperCase(s.charAt(0)) + s.substring(1);
-        }
-
-        @Override
-        protected void onRender(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
-            // Highlight the active tab. Containers render onRender before their children,
-            // so this sits behind the glass tab button (browser-style active tab).
-            if (selectedButton == null) return;
-
-            double bx = selectedButton.x;
-            double by = selectedButton.y;
-            double bw = selectedButton.width;
-            double bh = selectedButton.height;
-
-            Color accent = theme instanceof MeteorGuiTheme mgt ? mgt.accentColor.get() : Color.WHITE;
-            Color accent2 = theme instanceof MeteorGuiTheme mgt2 ? mgt2.accentColor2.get() : accent;
-
-            double r = theme.scale(6);
-
-            // Rounded-top, flat-bottom accent fill so the active tab "connects" to the content below.
-            renderer.roundedQuad(bx, by, bw, bh, r, true, false, accent, accent2);
-
-            // Accent underline beneath the active tab.
-            renderer.roundedQuad(bx, by + bh, bw, theme.scale(2), theme.scale(1), accent, accent2);
         }
 
         @Override
         protected void onCalculateWidgetPositions() {
-            double pad = theme.scale(4);
+            double pad = theme.scale(6);
             double windowWidth = getWindowWidth();
 
-            // Tab bar centered at the top.
-            double tabX = Math.max(pad, windowWidth / 2.0 - tabBar.width / 2.0);
-            double tabY = this.y + pad;
-            double contentY = tabY + tabBar.height + pad;
-
+            // All children are category/search/favorites windows; make sure they're all shown.
+            List<WWidget> panels = new ArrayList<>();
             for (Cell<?> cell : cells) {
                 WWidget widget = cell.widget();
+                widget.visible = true;
+                panels.add(widget);
+            }
 
-                if (widget == tabBar) {
-                    cell.x = tabX;
-                    cell.y = tabY;
-                }
-                else if (widget instanceof WWindow window) {
-                    // Only the selected category's window is shown; others are hidden.
-                    boolean show = (window == selected);
-                    window.visible = show;
+            // Balance the panels across a fixed number of columns to get the 3-panel glass layout.
+            double[] colHeight = new double[COLUMNS];
+            double[] colWidth = new double[COLUMNS];
+            int[] assign = new int[panels.size()];
 
-                    if (show) {
-                        cell.x = Math.max(pad, windowWidth / 2.0 - widget.width / 2.0);
-                        cell.y = contentY;
-                    } else {
-                        cell.x = -100000;
-                        cell.y = -100000;
-                    }
-                }
-                else {
-                    cell.x = this.x;
-                    cell.y = this.y;
-                }
+            for (int i = 0; i < panels.size(); i++) {
+                int col = shortestColumn(colHeight);
+                assign[i] = col;
+                colHeight[col] += panels.get(i).height + pad;
+                colWidth[col] = Math.max(colWidth[col], panels.get(i).width);
+            }
 
+            // Total width of all columns, then center them on screen.
+            double totalWidth = pad * (COLUMNS - 1);
+            for (double w : colWidth) totalWidth += w;
+
+            double[] colX = new double[COLUMNS];
+            double x = Math.max(pad, windowWidth / 2.0 - totalWidth / 2.0);
+            for (int c = 0; c < COLUMNS; c++) {
+                colX[c] = x;
+                x += colWidth[c] + pad;
+            }
+
+            double[] colY = new double[COLUMNS];
+            for (int c = 0; c < COLUMNS; c++) colY[c] = this.y + pad;
+
+            int i = 0;
+            for (Cell<?> cell : cells) {
+                int col = assign[i++];
+                WWidget widget = cell.widget();
+
+                cell.x = colX[col];
+                cell.y = colY[col];
                 cell.width = widget.width;
                 cell.height = widget.height;
-
                 cell.alignWidget();
+
+                colY[col] += widget.height + pad;
             }
+        }
+
+        private int shortestColumn(double[] heights) {
+            int min = 0;
+            for (int c = 1; c < heights.length; c++) {
+                if (heights[c] < heights[min]) min = c;
+            }
+            return min;
         }
     }
 }
