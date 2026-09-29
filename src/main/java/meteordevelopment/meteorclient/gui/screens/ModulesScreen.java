@@ -6,6 +6,9 @@
 package meteordevelopment.meteorclient.gui.screens;
 
 import meteordevelopment.meteorclient.gui.GuiTheme;
+import meteordevelopment.meteorclient.gui.renderer.GuiRenderer;
+import meteordevelopment.meteorclient.gui.themes.meteor.MeteorGuiTheme;
+import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.meteorclient.gui.tabs.TabScreen;
 import meteordevelopment.meteorclient.gui.tabs.Tabs;
 import meteordevelopment.meteorclient.gui.utils.Cell;
@@ -234,6 +237,11 @@ public class ModulesScreen extends TabScreen {
         private WHorizontalList tabBar;
         private WWindow selected;
 
+        // Parallel lists of tab windows and their tab buttons, so the active tab can be highlighted.
+        private final List<WWindow> tabWins = new ArrayList<>();
+        private final List<WButton> tabBtns = new ArrayList<>();
+        private WButton selectedButton;
+
         @Override
         public void init() {
             // Tab bar sits above the content. Added first so it renders at the top.
@@ -290,23 +298,35 @@ public class ModulesScreen extends TabScreen {
         private void buildTabs() {
             if (tabBar == null) return;
             tabBar.clear();
+            tabWins.clear();
+            tabBtns.clear();
 
-            List<WWindow> tabs = tabWindows();
-            for (WWindow window : tabs) {
+            for (WWindow window : tabWindows()) {
                 WButton button = tabBar.add(theme.button(tabName(window))).widget();
                 button.action = () -> select(window);
+
+                tabWins.add(window);
+                tabBtns.add(button);
             }
 
             // Keep a valid selection.
-            if (selected == null || !tabs.contains(selected)) {
-                select(tabs.isEmpty() ? null : tabs.getFirst());
+            if (selected == null || !tabWins.contains(selected)) {
+                select(tabWins.isEmpty() ? null : tabWins.getFirst());
+            } else {
+                updateSelectedButton();
             }
         }
 
         private void select(WWindow window) {
             selected = window;
             if (window != null) window.setExpanded(true);
+            updateSelectedButton();
             invalidate();
+        }
+
+        private void updateSelectedButton() {
+            int i = tabWins.indexOf(selected);
+            selectedButton = (i >= 0 && i < tabBtns.size()) ? tabBtns.get(i) : null;
         }
 
         private String tabName(WWindow window) {
@@ -314,6 +334,29 @@ public class ModulesScreen extends TabScreen {
             String s = window.id;
             if (s == null || s.isEmpty()) return "?";
             return Character.toUpperCase(s.charAt(0)) + s.substring(1);
+        }
+
+        @Override
+        protected void onRender(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
+            // Highlight the active tab. Containers render onRender before their children,
+            // so this sits behind the glass tab button (browser-style active tab).
+            if (selectedButton == null) return;
+
+            double bx = selectedButton.x;
+            double by = selectedButton.y;
+            double bw = selectedButton.width;
+            double bh = selectedButton.height;
+
+            Color accent = theme instanceof MeteorGuiTheme mgt ? mgt.accentColor.get() : Color.WHITE;
+            Color accent2 = theme instanceof MeteorGuiTheme mgt2 ? mgt2.accentColor2.get() : accent;
+
+            double r = theme.scale(6);
+
+            // Rounded-top, flat-bottom accent fill so the active tab "connects" to the content below.
+            renderer.roundedQuad(bx, by, bw, bh, r, true, false, accent, accent2);
+
+            // Accent underline beneath the active tab.
+            renderer.roundedQuad(bx, by + bh, bw, theme.scale(2), theme.scale(1), accent, accent2);
         }
 
         @Override
