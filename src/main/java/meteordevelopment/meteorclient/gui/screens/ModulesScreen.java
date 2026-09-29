@@ -9,11 +9,14 @@ import meteordevelopment.meteorclient.gui.GuiTheme;
 import meteordevelopment.meteorclient.gui.tabs.TabScreen;
 import meteordevelopment.meteorclient.gui.tabs.Tabs;
 import meteordevelopment.meteorclient.gui.utils.Cell;
+import meteordevelopment.meteorclient.gui.widgets.WWidget;
 import meteordevelopment.meteorclient.gui.widgets.containers.WContainer;
+import meteordevelopment.meteorclient.gui.widgets.containers.WHorizontalList;
 import meteordevelopment.meteorclient.gui.widgets.containers.WSection;
 import meteordevelopment.meteorclient.gui.widgets.containers.WVerticalList;
 import meteordevelopment.meteorclient.gui.widgets.containers.WWindow;
 import meteordevelopment.meteorclient.gui.widgets.input.WTextBox;
+import meteordevelopment.meteorclient.gui.widgets.pressable.WButton;
 import meteordevelopment.meteorclient.systems.config.Config;
 import meteordevelopment.meteorclient.systems.modules.Category;
 import meteordevelopment.meteorclient.systems.modules.Module;
@@ -228,8 +231,15 @@ public class ModulesScreen extends TabScreen {
         public final List<WWindow> windows = new ArrayList<>();
         private Cell<WWindow> favorites;
 
+        private WHorizontalList tabBar;
+        private WWindow selected;
+
         @Override
         public void init() {
+            // Tab bar sits above the content. Added first so it renders at the top.
+            tabBar = add(theme.horizontalList()).widget();
+
+            // Still create one window per category so addon mixins on createCategory keep working.
             List<Module> moduleList = new ArrayList<>();
             for (Category category : Modules.loopCategories()) {
                 for (Module module : Modules.get().getGroup(category)) {
@@ -248,6 +258,10 @@ public class ModulesScreen extends TabScreen {
             windows.add(createSearch(this));
 
             refresh();
+            buildTabs();
+
+            // Default to the first category tab.
+            select(windows.isEmpty() ? null : windows.getFirst());
         }
 
         protected void refresh() {
@@ -263,43 +277,69 @@ public class ModulesScreen extends TabScreen {
                     favorites = null;
                 }
             }
+
+            if (tabBar != null) buildTabs();
+        }
+
+        private void buildTabs() {
+            tabBar.clear();
+
+            for (WWindow window : windows) {
+                WButton button = tabBar.add(theme.button(tabName(window))).widget();
+                button.action = () -> select(window);
+            }
+        }
+
+        private void select(WWindow window) {
+            selected = window;
+
+            // Only the selected category's window is visible (browser-style tabs).
+            for (WWindow w : windows) w.visible = (w == window);
+            if (window != null) window.setExpanded(true);
+
+            invalidate();
+        }
+
+        private String tabName(WWindow window) {
+            String s = window.id;
+            if (s == null || s.isEmpty()) return "?";
+            return Character.toUpperCase(s.charAt(0)) + s.substring(1);
         }
 
         @Override
         protected void onCalculateWidgetPositions() {
             double pad = theme.scale(4);
-            double h = theme.scale(40);
+            double windowWidth = getWindowWidth();
 
-            double x = this.x + pad;
-            double y = this.y;
+            // Tab bar centered at the top.
+            double tabX = Math.max(pad, windowWidth / 2.0 - tabBar.width / 2.0);
+            double tabY = this.y + pad;
+            double contentY = tabY + tabBar.height + pad;
 
             for (Cell<?> cell : cells) {
-                double windowWidth = getWindowWidth();
-                double windowHeight = getWindowHeight();
+                WWidget widget = cell.widget();
 
-                if (x + cell.width > windowWidth) {
-                    x = x + pad;
-                    y += h;
+                double cx, cy;
+                if (widget == tabBar) {
+                    cx = tabX;
+                    cy = tabY;
+                }
+                else if (widget == selected) {
+                    cx = Math.max(pad, windowWidth / 2.0 - widget.width / 2.0);
+                    cy = contentY;
+                }
+                else {
+                    // Non-selected windows are hidden; park them off-screen so they don't render.
+                    cx = -100000;
+                    cy = -100000;
                 }
 
-                if (x > windowWidth) {
-                    x = windowWidth / 2.0 - cell.width / 2.0;
-                    if (x < 0) x = 0;
-                }
-                if (y > windowHeight) {
-                    y = windowHeight / 2.0 - cell.height / 2.0;
-                    if (y < 0) y = 0;
-                }
-
-                cell.x = x;
-                cell.y = y;
-
-                cell.width = cell.widget().width;
-                cell.height = cell.widget().height;
+                cell.x = cx;
+                cell.y = cy;
+                cell.width = widget.width;
+                cell.height = widget.height;
 
                 cell.alignWidget();
-
-                x += cell.width + pad;
             }
         }
     }
