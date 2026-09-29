@@ -6,14 +6,14 @@
 package meteordevelopment.meteorclient.gui.screens;
 
 import meteordevelopment.meteorclient.gui.GuiTheme;
-import meteordevelopment.meteorclient.gui.tabs.TabScreen;
 import meteordevelopment.meteorclient.gui.tabs.Tabs;
-import meteordevelopment.meteorclient.gui.utils.Cell;
+import meteordevelopment.meteorclient.gui.tabs.WindowTabScreen;
 import meteordevelopment.meteorclient.gui.widgets.containers.WContainer;
+import meteordevelopment.meteorclient.gui.widgets.containers.WHorizontalList;
 import meteordevelopment.meteorclient.gui.widgets.containers.WSection;
 import meteordevelopment.meteorclient.gui.widgets.containers.WVerticalList;
-import meteordevelopment.meteorclient.gui.widgets.containers.WWindow;
 import meteordevelopment.meteorclient.gui.widgets.input.WTextBox;
+import meteordevelopment.meteorclient.gui.widgets.pressable.WButton;
 import meteordevelopment.meteorclient.systems.config.Config;
 import meteordevelopment.meteorclient.systems.modules.Category;
 import meteordevelopment.meteorclient.systems.modules.Module;
@@ -21,130 +21,158 @@ import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.meteorclient.utils.misc.NbtUtils;
 import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.util.MacWindowUtil;
-import net.minecraft.item.Items;
 import net.minecraft.util.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import static meteordevelopment.meteorclient.utils.Utils.getWindowHeight;
-import static meteordevelopment.meteorclient.utils.Utils.getWindowWidth;
 import static org.lwjgl.glfw.GLFW.*;
 
-public class ModulesScreen extends TabScreen {
-    private WCategoryController controller;
-    private WWindow searchWindow;
+/**
+ * Cohesive, browser-style ClickGUI: a single window with a category tab bar at the top and a
+ * swappable module list below. Selecting a tab replaces the content pane (like switching browser tabs).
+ */
+public class ModulesScreen extends WindowTabScreen {
+    private static final Object FAVORITES = new Object();
+    private static final Object SEARCH = new Object();
+
+    private WHorizontalList tabBar;
+    private WVerticalList content;
     private WTextBox searchTextBox;
+    private Object current;
 
     public ModulesScreen(GuiTheme theme) {
         super(theme, Tabs.get().getFirst());
+
+        window.id = "modules";
+        window.padding = 0;
+        window.spacing = 0;
     }
 
     @Override
     public void initWidgets() {
-        controller = add(new WCategoryController()).widget();
+        // Tab bar: one tab per non-empty category, plus Favorites and Search.
+        tabBar = add(theme.horizontalList()).expandX().widget();
 
-        // Help
-        WVerticalList help = add(theme.verticalList()).pad(4).bottom().widget();
-        help.add(theme.label("Left click - Toggle module"));
-        help.add(theme.label("Right click - Open module settings"));
-    }
+        Category firstCategory = null;
+        for (Category category : Modules.loopCategories()) {
+            if (!hasVisibleModules(category)) continue;
+            if (firstCategory == null) firstCategory = category;
 
-    @Override
-    protected void init() {
-        super.init();
-        controller.refresh();
-    }
-
-    // Category
-
-    protected WWindow createCategory(WContainer c, Category category, List<Module> moduleList) {
-        WWindow w = theme.window(category.name);
-        w.id = category.name;
-        w.padding = 0;
-        w.spacing = 0;
-
-        if (theme.categoryIcons()) {
-            w.beforeHeaderInit = wContainer -> wContainer.add(theme.item(category.icon)).pad(2);
+            Category c = category; // effectively final for the lambda
+            addTab(category.name, () -> selectCategory(c));
         }
 
-        c.add(w);
-        w.view.scrollOnlyWhenMouseOver = true;
-        w.view.hasScrollBar = false;
-        w.view.spacing = 0;
+        addTab("Favorites", this::selectFavorites);
+        addTab("Search", this::selectSearch);
 
-        for (Module module : moduleList) {
-            w.add(theme.module(module)).expandX();
-        }
+        // Content pane (the window itself scrolls when a category is tall).
+        content = add(theme.verticalList()).expandX().widget();
+        content.spacing = 0;
 
-        return w;
+        // Default view.
+        if (firstCategory != null) selectCategory(firstCategory);
+        else selectSearch();
     }
 
-    // Search
+    private void addTab(String name, Runnable onSelect) {
+        WButton button = tabBar.add(theme.button(name)).widget();
+        button.action = onSelect;
+    }
 
-    protected void createSearchW(WContainer w, String text) {
-        if (!text.isEmpty()) {
-            // Titles
-            List<Pair<Module, String>> modules = Modules.get().searchTitles(text);
+    private boolean hasVisibleModules(Category category) {
+        for (Module module : Modules.get().getGroup(category)) {
+            if (!Config.get().hiddenModules.get().contains(module)) return true;
+        }
+        return false;
+    }
 
-            if (!modules.isEmpty()) {
-                WSection section = w.add(theme.section("Modules")).expandX().widget();
-                section.spacing = 0;
+    // Tab content
 
-                int count = 0;
-                for (Pair<Module, String> p : modules) {
-                    if (count >= Config.get().moduleSearchCount.get() || count >= modules.size()) break;
-                    section.add(theme.module(p.getLeft(), p.getRight())).expandX();
-                    count++;
-                }
-            }
+    private void selectCategory(Category category) {
+        current = category;
+        content.clear();
 
-            // Settings
-            Set<Module> settings = Modules.get().searchSettingTitles(text);
-
-            if (!settings.isEmpty()) {
-                WSection section = w.add(theme.section("Settings")).expandX().widget();
-                section.spacing = 0;
-
-                int count = 0;
-                for (Module module : settings) {
-                    if (count >= Config.get().moduleSearchCount.get() || count >= settings.size()) break;
-                    section.add(theme.module(module)).expandX();
-                    count++;
-                }
+        for (Module module : Modules.get().getGroup(category)) {
+            if (!Config.get().hiddenModules.get().contains(module)) {
+                content.add(theme.module(module)).expandX();
             }
         }
+
+        invalidate();
     }
 
-    protected WWindow createSearch(WContainer c) {
-        WWindow w = theme.window("Search");
-        w.id = "search";
-        searchWindow = w;
+    private void selectFavorites() {
+        current = FAVORITES;
+        content.clear();
 
-        if (theme.categoryIcons()) {
-            w.beforeHeaderInit = wContainer -> wContainer.add(theme.item(Items.COMPASS.getDefaultStack())).pad(2);
+        List<Module> modules = new ArrayList<>();
+        for (Module module : Modules.get().getAll()) {
+            if (module.favorite) modules.add(module);
+        }
+        modules.sort((o1, o2) -> String.CASE_INSENSITIVE_ORDER.compare(o1.name, o2.name));
+
+        if (modules.isEmpty()) {
+            content.add(theme.label("No favorite modules.")).pad(4);
+        } else {
+            for (Module module : modules) content.add(theme.module(module)).expandX();
         }
 
-        c.add(w);
-        w.view.scrollOnlyWhenMouseOver = true;
-        w.view.hasScrollBar = false;
-        w.view.maxHeight -= 20;
+        invalidate();
+    }
 
-        WVerticalList l = theme.verticalList();
+    private void selectSearch() {
+        current = SEARCH;
+        content.clear();
 
-        WTextBox text = w.add(theme.textBox("")).minWidth(140).expandX().widget();
+        WTextBox text = content.add(theme.textBox("")).minWidth(140).expandX().widget();
         text.setFocused(true);
         searchTextBox = text;
+
+        WVerticalList results = content.add(theme.verticalList()).expandX().widget();
         text.action = () -> {
-            l.clear();
-            createSearchW(l, text.get());
+            results.clear();
+            createSearchW(results, text.get());
+            results.invalidate();
         };
 
-        w.add(l).expandX();
-        createSearchW(l, text.get());
+        createSearchW(results, text.get());
+        invalidate();
+    }
 
-        return w;
+    protected void createSearchW(WContainer w, String text) {
+        if (text.isEmpty()) return;
+
+        // Titles
+        List<Pair<Module, String>> modules = Modules.get().searchTitles(text);
+
+        if (!modules.isEmpty()) {
+            WSection section = w.add(theme.section("Modules")).expandX().widget();
+            section.spacing = 0;
+
+            int count = 0;
+            for (Pair<Module, String> p : modules) {
+                if (count >= Config.get().moduleSearchCount.get() || count >= modules.size()) break;
+                section.add(theme.module(p.getLeft(), p.getRight())).expandX();
+                count++;
+            }
+        }
+
+        // Settings
+        Set<Module> settings = Modules.get().searchSettingTitles(text);
+
+        if (!settings.isEmpty()) {
+            WSection section = w.add(theme.section("Settings")).expandX().widget();
+            section.spacing = 0;
+
+            int count = 0;
+            for (Module module : settings) {
+                if (count >= Config.get().moduleSearchCount.get() || count >= settings.size()) break;
+                section.add(theme.module(module)).expandX();
+                count++;
+            }
+        }
     }
 
     @Override
@@ -154,58 +182,15 @@ public class ModulesScreen extends TabScreen {
         boolean cntrl = MacWindowUtil.IS_MAC ? value.modifiers() == GLFW_MOD_SUPER : value.modifiers() == GLFW_MOD_CONTROL;
 
         if (cntrl && value.key() == GLFW_KEY_F) {
-            if (searchWindow != null) searchWindow.setExpanded(true);
+            if (current != SEARCH) selectSearch();
             if (searchTextBox != null) {
                 searchTextBox.setFocused(true);
                 searchTextBox.setCursorMax();
             }
-
             return true;
         }
 
         return super.keyPressed(value);
-    }
-
-    // Favorites
-
-    protected Cell<WWindow> createFavorites(WContainer c) {
-        boolean hasFavorites = Modules.get().getAll().stream().anyMatch(module -> module.favorite);
-        if (!hasFavorites) return null;
-
-        WWindow w = theme.window("Favorites");
-        w.id = "favorites";
-        w.padding = 0;
-        w.spacing = 0;
-
-        if (theme.categoryIcons()) {
-            w.beforeHeaderInit = wContainer -> wContainer.add(theme.item(Items.NETHER_STAR.getDefaultStack())).pad(2);
-        }
-
-        Cell<WWindow> cell = c.add(w);
-        w.view.scrollOnlyWhenMouseOver = true;
-        w.view.hasScrollBar = false;
-        w.view.spacing = 0;
-
-        createFavoritesW(w);
-        return cell;
-    }
-
-    protected boolean createFavoritesW(WWindow w) {
-        List<Module> modules = new ArrayList<>();
-
-        for (Module module : Modules.get().getAll()) {
-            if (module.favorite) {
-                modules.add(module);
-            }
-        }
-
-        modules.sort((o1, o2) -> String.CASE_INSENSITIVE_ORDER.compare(o1.name, o2.name));
-
-        for (Module module : modules) {
-            w.add(theme.module(module)).expandX();
-        }
-
-        return !modules.isEmpty();
     }
 
     @Override
@@ -220,87 +205,5 @@ public class ModulesScreen extends TabScreen {
 
     @Override
     public void reload() {
-    }
-
-    // Stuff
-
-    protected class WCategoryController extends WContainer {
-        public final List<WWindow> windows = new ArrayList<>();
-        private Cell<WWindow> favorites;
-
-        @Override
-        public void init() {
-            List<Module> moduleList = new ArrayList<>();
-            for (Category category : Modules.loopCategories()) {
-                for (Module module : Modules.get().getGroup(category)) {
-                    if (!Config.get().hiddenModules.get().contains(module)) {
-                        moduleList.add(module);
-                    }
-                }
-
-                // Ensure empty categories are not shown
-                if (!moduleList.isEmpty()) {
-                    windows.add(createCategory(this, category, moduleList));
-                    moduleList.clear();
-                }
-            }
-
-            windows.add(createSearch(this));
-
-            refresh();
-        }
-
-        protected void refresh() {
-            if (favorites == null) {
-                favorites = createFavorites(this);
-                if (favorites != null) windows.add(favorites.widget());
-            } else {
-                favorites.widget().clear();
-
-                if (!createFavoritesW(favorites.widget())) {
-                    remove(favorites);
-                    windows.remove(favorites.widget());
-                    favorites = null;
-                }
-            }
-        }
-
-        @Override
-        protected void onCalculateWidgetPositions() {
-            double pad = theme.scale(4);
-            double h = theme.scale(40);
-
-            double x = this.x + pad;
-            double y = this.y;
-
-            for (Cell<?> cell : cells) {
-                double windowWidth = getWindowWidth();
-                double windowHeight = getWindowHeight();
-
-                if (x + cell.width > windowWidth) {
-                    x = x + pad;
-                    y += h;
-                }
-
-                if (x > windowWidth) {
-                    x = windowWidth / 2.0 - cell.width / 2.0;
-                    if (x < 0) x = 0;
-                }
-                if (y > windowHeight) {
-                    y = windowHeight / 2.0 - cell.height / 2.0;
-                    if (y < 0) y = 0;
-                }
-
-                cell.x = x;
-                cell.y = y;
-
-                cell.width = cell.widget().width;
-                cell.height = cell.widget().height;
-
-                cell.alignWidget();
-
-                x += cell.width + pad;
-            }
-        }
     }
 }
