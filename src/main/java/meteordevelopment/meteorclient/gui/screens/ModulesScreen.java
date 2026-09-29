@@ -234,7 +234,7 @@ public class ModulesScreen extends TabScreen {
         public final List<WWindow> windows = new ArrayList<>();
         private Cell<WWindow> favorites;
 
-        private WHorizontalList tabBar;
+        private WContainer tabBar;
         private WWindow selected;
 
         // Parallel lists of tab windows and their tab buttons, so the active tab can be highlighted.
@@ -244,8 +244,8 @@ public class ModulesScreen extends TabScreen {
 
         @Override
         public void init() {
-            // Tab bar sits above the content. Added first so it renders at the top.
-            tabBar = add(theme.horizontalList()).widget();
+            // Vertical tab strip that sits to the left of the central menu.
+            tabBar = add(theme.verticalList()).widget();
 
             // Still create one window per category so addon mixins on createCategory keep working.
             List<Module> moduleList = new ArrayList<>();
@@ -302,7 +302,7 @@ public class ModulesScreen extends TabScreen {
             tabBtns.clear();
 
             for (WWindow window : tabWindows()) {
-                WButton button = tabBar.add(theme.button(tabName(window))).widget();
+                WButton button = tabBar.add(theme.button(tabName(window))).expandX().widget();
                 button.action = () -> select(window);
 
                 tabWins.add(window);
@@ -338,36 +338,38 @@ public class ModulesScreen extends TabScreen {
 
         @Override
         protected void onRender(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
-            // Highlight the active tab. Containers render onRender before their children,
-            // so this sits behind the glass tab button (browser-style active tab).
+            // Active-tab indicator: an accent pill in the gutter to the left of the selected tab.
+            // Drawn outside the button so it stays visible over the opaque button background.
             if (selectedButton == null) return;
 
-            double bx = selectedButton.x;
             double by = selectedButton.y;
-            double bw = selectedButton.width;
             double bh = selectedButton.height;
 
             Color accent = theme instanceof MeteorGuiTheme mgt ? mgt.accentColor.get() : Color.WHITE;
             Color accent2 = theme instanceof MeteorGuiTheme mgt2 ? mgt2.accentColor2.get() : accent;
 
-            double r = theme.scale(6);
+            double barW = theme.scale(3);
+            double barX = selectedButton.x - theme.scale(5);
 
-            // Rounded-top, flat-bottom accent fill so the active tab "connects" to the content below.
-            renderer.roundedQuad(bx, by, bw, bh, r, true, false, accent, accent2);
-
-            // Accent underline beneath the active tab.
-            renderer.roundedQuad(bx, by + bh, bw, theme.scale(2), theme.scale(1), accent, accent2);
+            renderer.roundedQuad(barX, by + bh * 0.12, barW, bh * 0.76, barW / 2.0, accent, accent2);
         }
 
         @Override
         protected void onCalculateWidgetPositions() {
-            double pad = theme.scale(4);
+            double pad = theme.scale(6);
+            double gap = theme.scale(12);
             double windowWidth = getWindowWidth();
+            double windowHeight = getWindowHeight();
 
-            // Tab bar centered at the top.
-            double tabX = Math.max(pad, windowWidth / 2.0 - tabBar.width / 2.0);
-            double tabY = this.y + pad;
-            double contentY = tabY + tabBar.height + pad;
+            // One big central menu (the selected category window) with the vertical tab strip beside it.
+            double contentWidth = selected != null ? selected.width : 0;
+            double groupWidth = tabBar.width + gap + contentWidth;
+
+            double startX = Math.max(pad, windowWidth / 2.0 - groupWidth / 2.0);
+            double tabX = startX;
+            double contentX = startX + tabBar.width + gap;
+
+            double tabY = Math.max(pad, windowHeight / 2.0 - tabBar.height / 2.0);
 
             for (Cell<?> cell : cells) {
                 WWidget widget = cell.widget();
@@ -377,13 +379,13 @@ public class ModulesScreen extends TabScreen {
                     cell.y = tabY;
                 }
                 else if (widget instanceof WWindow window) {
-                    // Only the selected category's window is shown; others are hidden.
+                    // Only the selected category's window is shown; the rest are hidden.
                     boolean show = (window == selected);
                     window.visible = show;
 
                     if (show) {
-                        cell.x = Math.max(pad, windowWidth / 2.0 - widget.width / 2.0);
-                        cell.y = contentY;
+                        cell.x = contentX;
+                        cell.y = Math.max(pad, windowHeight / 2.0 - widget.height / 2.0);
                     } else {
                         cell.x = -100000;
                         cell.y = -100000;
