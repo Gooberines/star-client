@@ -74,14 +74,21 @@ public class WMeteorModule extends WPressable implements MeteorWidget {
         animationProgress2 += delta * 6 * (module.isActive() ? 1 : -1);
         animationProgress2 = MathHelper.clamp(animationProgress2, 0, 1);
 
-        // Light frosted base card behind every row so the list reads as wide cards.
+        // Light frosted base card behind every module.
         renderer.roundedQuad(x, y, width, height, theme.round(), new Color(255, 255, 255, 34));
 
-        if (animationProgress1 > 0) {
-            renderer.roundedQuad(x, y, width * animationProgress1, height, theme.round(), theme.moduleBackground.get());
+        // Hover brighten.
+        if (animationProgress1 > 0 && animationProgress2 < 1) {
+            renderer.roundedQuad(x, y, width, height, theme.round(), new Color(255, 255, 255, (int) (animationProgress1 * 40)));
         }
+        // Active: fill the whole card with the accent gradient so on/off is clear in the grid.
         if (animationProgress2 > 0) {
-            renderer.quad(x, y + height * (1 - animationProgress2), theme.scale(2), height * animationProgress2, theme.accentColor.get());
+            Color a1 = theme.accentColor.get();
+            Color a2 = theme.accentColor2.get();
+            int al = (int) (animationProgress2 * 235);
+            renderer.roundedQuad(x, y, width, height, theme.round(),
+                new Color(a1.r, a1.g, a1.b, a1.a * al / 255),
+                new Color(a2.r, a2.g, a2.b, a2.a * al / 255));
         }
 
         double x = this.x + pad;

@@ -81,11 +81,21 @@ public class ModulesScreen extends TabScreen {
         c.add(w);
         w.view.scrollOnlyWhenMouseOver = true;
         w.view.hasScrollBar = true;
-        w.view.spacing = theme.scale(3); // small gaps between rows so they read as cards
+        w.view.spacing = theme.scale(3); // gaps between grid rows
 
+        // Lay modules out in a fixed 5-wide grid, wrapping down as many rows as needed.
+        int cols = 5;
+        double cardW = theme.scale(96);
+        WHorizontalList row = null;
+        int i = 0;
         for (Module module : moduleList) {
-            // Fixed wide rows (long AND wide), filling the panel width.
-            w.add(theme.module(module)).expandX().minWidth(theme.scale(250));
+            if (i % cols == 0) {
+                row = theme.horizontalList();
+                row.spacing = theme.scale(3);
+                w.add(row);
+            }
+            row.add(theme.module(module)).minWidth(cardW);
+            i++;
         }
 
         return w;
@@ -230,17 +240,6 @@ public class ModulesScreen extends TabScreen {
 
     @Override
     public void reload() {
-    }
-
-    // Liquid-glass full-screen backdrop: blur whatever is behind, then a soft gradient tint.
-    private static final int GLASS_TOP = 0xC8_8A8FD8;    // periwinkle
-    private static final int GLASS_BOTTOM = 0xC8_9B8AC4; // dusty violet (~78% opacity)
-
-    @Override
-    public void renderBackground(DrawContext context, int mouseX, int mouseY, float deltaTicks) {
-        super.renderBackground(context, mouseX, mouseY, deltaTicks); // panorama when no world
-        context.applyBlur();                                          // frost the game/panorama behind
-        context.fillGradient(0, 0, context.getScaledWindowWidth(), context.getScaledWindowHeight(), GLASS_TOP, GLASS_BOTTOM);
     }
 
     // Stuff
@@ -427,7 +426,7 @@ public class ModulesScreen extends TabScreen {
 
             double startX = Math.max(pad, windowWidth / 2.0 - groupWidth / 2.0);
             double contentX = startX + tabBar.width + gap;
-            double topY = Math.max(theme.scale(10), (windowHeight - panelH) / 2.0);
+            double topY = theme.scale(28); // fixed top so switching categories doesn't move the panels
 
             // Tab-strip glass panel bounds for onRender (matches the module panel height).
             stripX = startX;
