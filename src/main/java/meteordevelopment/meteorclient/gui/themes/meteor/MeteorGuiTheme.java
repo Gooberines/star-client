@@ -75,7 +75,7 @@ public class MeteorGuiTheme extends GuiTheme {
     public final Setting<AlignmentX> moduleAlignment = sgGeneral.add(new EnumSetting.Builder<AlignmentX>()
         .name("module-alignment")
         .description("How module titles are aligned.")
-        .defaultValue(AlignmentX.Center)
+        .defaultValue(AlignmentX.Left)
         .build()
     );
 
@@ -119,9 +119,9 @@ public class MeteorGuiTheme extends GuiTheme {
     public final ThreeStateColorSetting backgroundColor = new ThreeStateColorSetting(
             sgBackgroundColors,
             "background",
-            new SettingColor(28, 26, 48, 175),
-            new SettingColor(40, 36, 68, 190),
-            new SettingColor(54, 48, 92, 205)
+            new SettingColor(255, 255, 255, 28),
+            new SettingColor(255, 255, 255, 44),
+            new SettingColor(255, 255, 255, 60)
     );
 
     public final Setting<SettingColor> moduleBackground = color(sgBackgroundColors, "module-background", "Color of module background when active.", new SettingColor(120, 95, 215, 185));

@@ -396,35 +396,29 @@ public class ModulesScreen extends TabScreen {
                 }
             }
 
-            // Uniform content height for both the tab strip and the module panel, vertically centered.
-            double margin = theme.scale(22);
-            double contentH = windowHeight - margin * 2;
-            double topY = margin;
-
-            // Cap the selected panel's scroll height so it fits on screen and scrolls (WView.init resets
-            // maxHeight, so we must set it here — after init — every layout).
-            if (selected != null) {
-                selected.view.maxHeight = Math.max(theme.scale(90), contentH - theme.scale(34));
-            }
+            // The module panel's height (WView caps itself to fit the screen); the tab strip matches it
+            // so both panels are the same height and vertically centered.
+            double panelH = selected != null ? selected.height : (tabBar.height + theme.scale(24));
 
             double contentWidth = selected != null ? selected.width : theme.scale(240);
             double groupWidth = tabBar.width + gap + contentWidth;
 
             double startX = Math.max(pad, windowWidth / 2.0 - groupWidth / 2.0);
             double contentX = startX + tabBar.width + gap;
+            double topY = Math.max(theme.scale(10), (windowHeight - panelH) / 2.0);
 
-            // Tab-strip glass panel bounds for onRender.
+            // Tab-strip glass panel bounds for onRender (matches the module panel height).
             stripX = startX;
             stripY = topY;
             stripW = tabBar.width;
-            stripH = contentH;
+            stripH = panelH;
 
             for (Cell<?> cell : cells) {
                 WWidget widget = cell.widget();
 
                 if (widget == tabBar) {
                     cell.x = startX;
-                    cell.y = topY + theme.scale(6); // tabs sit near the top of the strip
+                    cell.y = topY + theme.scale(8); // tabs sit near the top of the strip
                 }
                 else if (widget instanceof WWindow window) {
                     // Only the selected category's window is shown; the rest are hidden.
