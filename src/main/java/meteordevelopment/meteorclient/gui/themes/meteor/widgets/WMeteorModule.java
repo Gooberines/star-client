@@ -74,6 +74,9 @@ public class WMeteorModule extends WPressable implements MeteorWidget {
         animationProgress2 += delta * 6 * (module.isActive() ? 1 : -1);
         animationProgress2 = MathHelper.clamp(animationProgress2, 0, 1);
 
+        // Subtle base card behind every row so the list reads as wide cards.
+        renderer.roundedQuad(x, y, width, height, theme.round(), new Color(255, 255, 255, 16));
+
         if (animationProgress1 > 0) {
             renderer.roundedQuad(x, y, width * animationProgress1, height, theme.round(), theme.moduleBackground.get());
         }

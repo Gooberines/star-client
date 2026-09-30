@@ -82,10 +82,11 @@ public class ModulesScreen extends TabScreen {
         w.view.scrollOnlyWhenMouseOver = true;
         w.view.hasScrollBar = true;
         w.view.maxHeight = getWindowHeight() - 70;
-        w.view.spacing = 0;
+        w.view.spacing = theme.scale(3); // small gaps between rows so they read as cards
 
         for (Module module : moduleList) {
-            w.add(theme.module(module)).expandX();
+            // Fixed wide rows (long AND wide), filling the panel width.
+            w.add(theme.module(module)).expandX().minWidth(theme.scale(220));
         }
 
         return w;
