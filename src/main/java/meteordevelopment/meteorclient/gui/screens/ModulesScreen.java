@@ -5,6 +5,7 @@
 
 package meteordevelopment.meteorclient.gui.screens;
 
+import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.gui.GuiTheme;
 import meteordevelopment.meteorclient.gui.renderer.GuiRenderer;
 import meteordevelopment.meteorclient.gui.themes.meteor.MeteorGuiTheme;
@@ -313,6 +314,9 @@ public class ModulesScreen extends TabScreen {
             tabWins.clear();
             tabBtns.clear();
 
+            // Brand at the top of the strip.
+            tabBar.add(theme.label(MeteorClient.NAME, true)).pad(6);
+
             for (WWindow window : tabWindows()) {
                 WButton button = tabBar.add(theme.button(tabName(window))).expandX().widget();
                 button.action = () -> select(window);
@@ -350,17 +354,25 @@ public class ModulesScreen extends TabScreen {
 
         @Override
         protected void onRender(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
-            // Active-tab indicator: accent pill on the inner edge of the selected tab.
-            if (selectedButton == null) return;
+            if (tabBar == null) return;
 
-            Color accent = theme instanceof MeteorGuiTheme mgt ? mgt.accentColor.get() : Color.WHITE;
-            Color accent2 = theme instanceof MeteorGuiTheme mgt2 ? mgt2.accentColor2.get() : accent;
+            double pad = theme.scale(6);
+            double r = theme.scale(12);
 
-            double bh = selectedButton.height;
-            double barW = theme.scale(3);
-            double barX = selectedButton.x + selectedButton.width + theme.scale(2);
+            // Frosted glass panel behind the tab strip (drawn before children).
+            double px = tabBar.x - pad, py = tabBar.y - pad;
+            double pw = tabBar.width + pad * 2, ph = tabBar.height + pad * 2;
+            renderer.roundedQuad(px, py, pw, ph, r, new Color(255, 255, 255, 30));
+            renderer.roundedQuad(px, py, pw, ph * 0.32, r, true, false, new Color(255, 255, 255, 26), new Color(255, 255, 255, 26));
 
-            renderer.roundedQuad(barX, selectedButton.y + bh * 0.12, barW, bh * 0.76, barW / 2.0, accent, accent2);
+            // Gradient pill behind the active tab (shows through the translucent tab button).
+            if (selectedButton != null) {
+                Color a1 = theme instanceof MeteorGuiTheme m1 ? m1.accentColor.get() : Color.WHITE;
+                Color a2 = theme instanceof MeteorGuiTheme m2 ? m2.accentColor2.get() : a1;
+
+                double ex = theme.scale(2);
+                renderer.roundedQuad(selectedButton.x - ex, selectedButton.y - ex / 2, selectedButton.width + ex * 2, selectedButton.height + ex, theme.scale(9), a1, a2);
+            }
         }
 
         @Override
