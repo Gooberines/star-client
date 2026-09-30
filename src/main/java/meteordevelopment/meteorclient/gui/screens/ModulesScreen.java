@@ -13,6 +13,7 @@ import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.meteorclient.gui.tabs.TabScreen;
 import meteordevelopment.meteorclient.gui.tabs.Tabs;
 import meteordevelopment.meteorclient.gui.utils.Cell;
+import meteordevelopment.meteorclient.gui.utils.WindowConfig;
 import meteordevelopment.meteorclient.gui.widgets.WWidget;
 import meteordevelopment.meteorclient.gui.widgets.containers.WContainer;
 import meteordevelopment.meteorclient.gui.widgets.containers.WHorizontalList;
@@ -79,7 +80,8 @@ public class ModulesScreen extends TabScreen {
 
         c.add(w);
         w.view.scrollOnlyWhenMouseOver = true;
-        w.view.hasScrollBar = false;
+        w.view.hasScrollBar = true;
+        w.view.maxHeight = getWindowHeight() - 70;
         w.view.spacing = 0;
 
         for (Module module : moduleList) {
@@ -381,6 +383,15 @@ public class ModulesScreen extends TabScreen {
             double gap = theme.scale(12);
             double windowWidth = getWindowWidth();
             double windowHeight = getWindowHeight();
+
+            // Clear any saved (dragged) window positions so our fixed tabbed layout always wins.
+            for (Cell<?> cell : cells) {
+                if (cell.widget() instanceof WWindow window && window.id != null) {
+                    WindowConfig cfg = theme.getWindowConfig(window.id);
+                    cfg.x = -1;
+                    cfg.y = -1;
+                }
+            }
 
             // One big central menu (the selected category window) with the vertical tab strip beside it.
             double contentWidth = selected != null ? selected.width : 0;
