@@ -385,14 +385,21 @@ public class ModulesScreen extends TabScreen {
                 double ex = theme.scale(2);
                 renderer.roundedQuad(selectedButton.x - ex, selectedButton.y - ex / 2, selectedButton.width + ex * 2, selectedButton.height + ex, theme.scale(9), a1, a2);
             }
+        }
 
-            // Colored dot beside each category tab.
+        @Override
+        public boolean render(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
+            boolean r = super.render(renderer, mouseX, mouseY, delta);
+
+            // Colored dot beside each category tab, drawn AFTER children so it sits on top of the button.
             double dotR = theme.scale(3);
             for (int i = 0; i < tabBtns.size(); i++) {
                 WButton b = tabBtns.get(i);
                 Color c = TAB_COLORS[i % TAB_COLORS.length];
-                renderer.roundedQuad(b.x + theme.scale(8), b.y + b.height / 2.0 - dotR, dotR * 2, dotR * 2, dotR, c);
+                renderer.roundedQuad(b.x + theme.scale(10), b.y + b.height / 2.0 - dotR, dotR * 2, dotR * 2, dotR, c);
             }
+
+            return r;
         }
 
         @Override

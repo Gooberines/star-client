@@ -44,7 +44,7 @@ public class WMeteorModule extends WPressable implements MeteorWidget {
 
     @Override
     public double pad() {
-        return theme.scale(4);
+        return theme.scale(6);
     }
 
     @Override
@@ -97,9 +97,8 @@ public class WMeteorModule extends WPressable implements MeteorWidget {
         renderer.text(title, x, y + pad, theme.textColor.get(), false);
 
         // Toggle switch on the right edge (on = accent gradient, sliding white knob).
-        double th = theme.textHeight();
-        double trackH = th + theme.scale(4);
-        double trackW = trackH * 2.0;
+        double trackH = theme.scale(13);
+        double trackW = theme.scale(26);
 
         // Only draw when the row is wide enough that the switch won't collide with the title.
         if (width - titleWidth > trackW + pad * 3) {
