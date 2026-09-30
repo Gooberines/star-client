@@ -81,12 +81,11 @@ public class ModulesScreen extends TabScreen {
         c.add(w);
         w.view.scrollOnlyWhenMouseOver = true;
         w.view.hasScrollBar = true;
-        w.view.maxHeight = getWindowHeight() - 70;
         w.view.spacing = theme.scale(3); // small gaps between rows so they read as cards
 
         for (Module module : moduleList) {
             // Fixed wide rows (long AND wide), filling the panel width.
-            w.add(theme.module(module)).expandX().minWidth(theme.scale(220));
+            w.add(theme.module(module)).expandX().minWidth(theme.scale(250));
         }
 
         return w;
@@ -258,6 +257,9 @@ public class ModulesScreen extends TabScreen {
         private final List<WButton> tabBtns = new ArrayList<>();
         private WButton selectedButton;
 
+        // Tab-strip glass panel bounds (computed in layout, drawn in onRender).
+        private double stripX, stripY, stripW, stripH;
+
         @Override
         public void init() {
             // Vertical tab strip that sits to the left of the central menu.
@@ -360,13 +362,13 @@ public class ModulesScreen extends TabScreen {
             if (tabBar == null) return;
 
             double pad = theme.scale(6);
-            double r = theme.scale(12);
+            double r = theme.scale(14);
 
-            // Frosted glass panel behind the tab strip (drawn before children).
-            double px = tabBar.x - pad, py = tabBar.y - pad;
-            double pw = tabBar.width + pad * 2, ph = tabBar.height + pad * 2;
+            // Full-height frosted glass tab-strip panel (matches the module panel height).
+            double px = stripX - pad, py = stripY;
+            double pw = stripW + pad * 2, ph = stripH;
             renderer.roundedQuad(px, py, pw, ph, r, new Color(255, 255, 255, 30));
-            renderer.roundedQuad(px, py, pw, ph * 0.32, r, true, false, new Color(255, 255, 255, 26), new Color(255, 255, 255, 26));
+            renderer.roundedQuad(px, py, pw, ph * 0.16, r, true, false, new Color(255, 255, 255, 28), new Color(255, 255, 255, 28));
 
             // Gradient pill behind the active tab (shows through the translucent tab button).
             if (selectedButton != null) {
@@ -394,23 +396,35 @@ public class ModulesScreen extends TabScreen {
                 }
             }
 
-            // One big central menu (the selected category window) with the vertical tab strip beside it.
-            double contentWidth = selected != null ? selected.width : 0;
+            // Uniform content height for both the tab strip and the module panel, vertically centered.
+            double margin = theme.scale(22);
+            double contentH = windowHeight - margin * 2;
+            double topY = margin;
+
+            // Cap the selected panel's scroll height so it fits on screen and scrolls (WView.init resets
+            // maxHeight, so we must set it here — after init — every layout).
+            if (selected != null) {
+                selected.view.maxHeight = Math.max(theme.scale(90), contentH - theme.scale(34));
+            }
+
+            double contentWidth = selected != null ? selected.width : theme.scale(240);
             double groupWidth = tabBar.width + gap + contentWidth;
 
-            // Vertical tab strip on the left, big module menu on the right.
             double startX = Math.max(pad, windowWidth / 2.0 - groupWidth / 2.0);
-            double tabX = startX;
             double contentX = startX + tabBar.width + gap;
 
-            double tabY = Math.max(pad, windowHeight / 2.0 - tabBar.height / 2.0);
+            // Tab-strip glass panel bounds for onRender.
+            stripX = startX;
+            stripY = topY;
+            stripW = tabBar.width;
+            stripH = contentH;
 
             for (Cell<?> cell : cells) {
                 WWidget widget = cell.widget();
 
                 if (widget == tabBar) {
-                    cell.x = tabX;
-                    cell.y = tabY;
+                    cell.x = startX;
+                    cell.y = topY + theme.scale(6); // tabs sit near the top of the strip
                 }
                 else if (widget instanceof WWindow window) {
                     // Only the selected category's window is shown; the rest are hidden.
@@ -419,7 +433,7 @@ public class ModulesScreen extends TabScreen {
 
                     if (show) {
                         cell.x = contentX;
-                        cell.y = Math.max(pad, windowHeight / 2.0 - widget.height / 2.0);
+                        cell.y = topY; // top-aligned with the tab strip
                     } else {
                         cell.x = -100000;
                         cell.y = -100000;
