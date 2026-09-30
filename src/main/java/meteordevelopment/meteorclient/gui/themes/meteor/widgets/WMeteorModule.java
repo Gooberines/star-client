@@ -98,30 +98,31 @@ public class WMeteorModule extends WPressable implements MeteorWidget {
 
         // Toggle switch on the right edge (on = accent gradient, sliding white knob).
         double th = theme.textHeight();
-        double trackW = th * 1.9;
+        double trackH = th + theme.scale(4);
+        double trackW = trackH * 2.0;
 
         // Only draw when the row is wide enough that the switch won't collide with the title.
         if (width - titleWidth > trackW + pad * 3) {
             double sx = this.x + width - pad - trackW;
-            double sy = y + (height - th) / 2.0;
-            double rad = th / 2.0;
+            double sy = y + (height - trackH) / 2.0;
+            double rad = trackH / 2.0;
 
             // Off track (neutral glass) always, on track (accent) fading in with activation.
-            renderer.roundedQuad(sx, sy, trackW, th, rad, new Color(255, 255, 255, 45));
+            renderer.roundedQuad(sx, sy, trackW, trackH, rad, new Color(255, 255, 255, 55));
             if (animationProgress2 > 0) {
                 Color a1 = theme.accentColor.get();
                 Color a2 = theme.accentColor2.get();
                 int al = (int) (animationProgress2 * 255);
-                renderer.roundedQuad(sx, sy, trackW, th, rad,
+                renderer.roundedQuad(sx, sy, trackW, trackH, rad,
                     new Color(a1.r, a1.g, a1.b, a1.a * al / 255),
                     new Color(a2.r, a2.g, a2.b, a2.a * al / 255));
             }
 
             // Knob slides left (off) to right (on).
-            double knobD = th - theme.scale(4);
+            double knobD = trackH - theme.scale(4);
             double knobX = sx + theme.scale(2) + (trackW - knobD - theme.scale(4)) * animationProgress2;
             double knobY = sy + theme.scale(2);
-            renderer.roundedQuad(knobX, knobY, knobD, knobD, knobD / 2.0, new Color(255, 255, 255, 240));
+            renderer.roundedQuad(knobX, knobY, knobD, knobD, knobD / 2.0, new Color(255, 255, 255, 245));
         }
     }
 }

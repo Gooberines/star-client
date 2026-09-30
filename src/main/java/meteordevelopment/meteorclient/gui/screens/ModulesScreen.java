@@ -260,6 +260,13 @@ public class ModulesScreen extends TabScreen {
         // Tab-strip glass panel bounds (computed in layout, drawn in onRender).
         private double stripX, stripY, stripW, stripH;
 
+        // Colored dot palette for the category tabs (cycled by index).
+        private final Color[] TAB_COLORS = {
+            new Color(255, 111, 208), new Color(255, 194, 122), new Color(95, 212, 255),
+            new Color(184, 77, 255), new Color(143, 224, 168), new Color(201, 166, 255),
+            new Color(92, 141, 255), new Color(255, 211, 111)
+        };
+
         @Override
         public void init() {
             // Vertical tab strip that sits to the left of the central menu.
@@ -377,6 +384,14 @@ public class ModulesScreen extends TabScreen {
 
                 double ex = theme.scale(2);
                 renderer.roundedQuad(selectedButton.x - ex, selectedButton.y - ex / 2, selectedButton.width + ex * 2, selectedButton.height + ex, theme.scale(9), a1, a2);
+            }
+
+            // Colored dot beside each category tab.
+            double dotR = theme.scale(3);
+            for (int i = 0; i < tabBtns.size(); i++) {
+                WButton b = tabBtns.get(i);
+                Color c = TAB_COLORS[i % TAB_COLORS.length];
+                renderer.roundedQuad(b.x + theme.scale(8), b.y + b.height / 2.0 - dotR, dotR * 2, dotR * 2, dotR, c);
             }
         }
 
