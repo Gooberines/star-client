@@ -81,24 +81,47 @@ public class ModulesScreen extends TabScreen {
         c.add(w);
         w.view.scrollOnlyWhenMouseOver = true;
         w.view.hasScrollBar = true;
-        w.view.spacing = theme.scale(3); // gaps between grid rows
+        w.view.spacing = theme.scale(3);
 
-        // Lay modules out in a fixed 5-wide grid, wrapping down as many rows as needed.
+        // Count line under the header (like the mockup's "N modules").
+        w.add(theme.label(moduleList.size() + " modules")).pad(theme.scale(4));
+
+        // Search box that filters this category's grid.
+        WTextBox search = w.add(theme.textBox("", "Search modules...")).expandX().widget();
+
+        // Grid container (5-wide, wraps down); rebuilt when the search text changes.
+        WVerticalList grid = w.add(theme.verticalList()).expandX().widget();
+        grid.spacing = theme.scale(3);
+        buildGrid(grid, moduleList, "");
+
+        search.action = () -> {
+            grid.clear();
+            buildGrid(grid, moduleList, search.get());
+            grid.invalidate();
+        };
+
+        return w;
+    }
+
+    // Build a 5-wide grid of module cards into the given container, optionally filtered.
+    private void buildGrid(WContainer grid, List<Module> modules, String filter) {
         int cols = 5;
         double cardW = theme.scale(96);
+        String f = filter.toLowerCase();
+
         WHorizontalList row = null;
         int i = 0;
-        for (Module module : moduleList) {
+        for (Module module : modules) {
+            if (!f.isEmpty() && !module.title.toLowerCase().contains(f)) continue;
+
             if (i % cols == 0) {
                 row = theme.horizontalList();
                 row.spacing = theme.scale(3);
-                w.add(row);
+                grid.add(row);
             }
             row.add(theme.module(module)).minWidth(cardW);
             i++;
         }
-
-        return w;
     }
 
     // Search
