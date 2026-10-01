@@ -1,18 +1,11 @@
-import net.ltgt.gradle.errorprone.errorprone
-
 plugins {
     alias(libs.plugins.fabric.loom)
     id("maven-publish")
-    alias(libs.plugins.errorprone)
 }
 
-val archivesBaseName = providers.gradleProperty("archives_base_name").get()
-val mavenGroup = providers.gradleProperty("maven_group").get()
-val runErrorProne = providers.gradleProperty("errorprone").isPresent
-
 base {
-    archivesName = archivesBaseName
-    group = mavenGroup
+    archivesName = properties["archives_base_name"] as String
+    group = properties["maven_group"] as String
 
     val suffix = providers.gradleProperty("build_number").getOrElse("local")
     version = "${libs.versions.minecraft.get()}-$suffix"
@@ -26,6 +19,10 @@ repositories {
     maven {
         name = "meteor-maven-snapshots"
         url = uri("https://maven.meteordev.org/snapshots")
+    }
+    maven {
+        name = "Terraformers"
+        url = uri("https://maven.terraformersmc.com")
     }
     maven {
         name = "ViaVersion"
@@ -46,15 +43,12 @@ repositories {
     }
 }
 
-val modInclude = configurations.create("modInclude")
-val jij = configurations.create("jij")
-val launcher = sourceSets.create("launcher") {
-    java.srcDir("src/launcher/java")
-}
+val modInclude: Configuration by configurations.creating
+val jij: Configuration by configurations.creating
 
 configurations {
     // include mods
-    implementation.configure {
+    modImplementation.configure {
         extendsFrom(modInclude)
     }
     include.configure {
@@ -73,22 +67,23 @@ configurations {
 dependencies {
     // Fabric
     minecraft(libs.minecraft)
-    implementation(libs.fabric.loader)
+    mappings(variantOf(libs.yarn) { classifier("v2") })
+    modImplementation(libs.fabric.loader)
 
     val fapiVersion = libs.versions.fabric.api.get()
     modInclude(fabricApi.module("fabric-api-base", fapiVersion))
     modInclude(fabricApi.module("fabric-resource-loader-v1", fapiVersion))
 
     // Compat fixes
-    compileOnly(fabricApi.module("fabric-renderer-indigo", fapiVersion))
-    compileOnly(libs.sodium) { isTransitive = false }
-    compileOnly(libs.lithium) { isTransitive = false }
-    compileOnly(libs.iris) { isTransitive = false }
-    compileOnly(libs.viafabricplus) { isTransitive = false }
-    compileOnly(libs.viafabricplus.api) { isTransitive = false }
+    modCompileOnly(fabricApi.module("fabric-renderer-indigo", fapiVersion))
+    modCompileOnly(libs.sodium) { isTransitive = false }
+    modCompileOnly(libs.lithium) { isTransitive = false }
+    modCompileOnly(libs.iris) { isTransitive = false }
+    modCompileOnly(libs.viafabricplus) { isTransitive = false }
+    modCompileOnly(libs.viafabricplus.api) { isTransitive = false }
 
-    compileOnly(libs.baritone)
-    compileOnly(libs.modmenu)
+    modCompileOnly(libs.baritone)
+    modCompileOnly(libs.modmenu)
 
     // Libraries (JAR-in-JAR)
     jij(libs.orbit)
@@ -98,20 +93,20 @@ dependencies {
     jij(libs.netty.handler.proxy) { isTransitive = false }
     jij(libs.netty.codec.socks) { isTransitive = false }
     jij(libs.waybackauthlib)
-    jij(libs.minecraft.auth) {
-        exclude("com.google.code.gson")
-        exclude("com.google.errorprone")
-    }
+    jij(libs.minecraft.auth)
+}
 
-    // Error Prone
-    errorprone(libs.errorprone.core)
-    errorprone(libs.nullaway)
+sourceSets {
+    val launcher by creating {
+        java {
+            srcDir("src/launcher/java")
+        }
+    }
 }
 
 java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(libs.versions.jdk.get().toInt()))
-    }
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 
     if (System.getenv("CI")?.toBoolean() == true) {
         withSourcesJar()
@@ -120,54 +115,37 @@ java {
 }
 
 // Handle transitive dependencies for jar-in-jar
-// Based on implementation from BaseProject by florianreuth/EnZaXD
-// Source: https://github.com/florianreuth/BaseProject/blob/main/src/main/kotlin/de/florianreuth/baseproject/Fabric.kt
+// Based on implementation from BaseProject by FlorianMichael/EnZaXD
+// Source: https://github.com/FlorianMichael/BaseProject/blob/main/src/main/kotlin/de/florianmichael/baseproject/Fabric.kt
 // Licensed under Apache License 2.0
-val jijExcluded = setOf("org.slf4j", "jsr305")
-listOf("api", "implementation", "include").forEach { configName ->
-    configurations.named(configName).configure {
-        defaultDependencies {
-            configurations.getByName("jij").incoming.resolutionResult.allComponents
-                .mapNotNull { it.id as? ModuleComponentIdentifier }
-                .forEach { id ->
-                    val notation = "${id.group}:${id.module}:${id.version}"
-                    if (jijExcluded.none { notation.contains(it) }) {
-                        add(project.dependencies.create(notation) {
-                            isTransitive = false
-                        })
-                    }
-                }
+afterEvaluate {
+    val jijConfig = configurations.findByName("jij") ?: return@afterEvaluate
+
+    // Dependencies to exclude from jar-in-jar
+    val excluded = setOf(
+        "org.slf4j",    // Logging provided by Minecraft
+        "jsr305"        // Compile time annotations only
+    )
+
+    jijConfig.incoming.resolutionResult.allDependencies.forEach { dep ->
+        val requested = dep.requested.displayName
+
+        if (excluded.any { requested.contains(it) }) return@forEach
+
+        val compileOnlyDep = dependencies.create(requested) {
+            isTransitive = false
         }
+
+        val implDep = dependencies.create(compileOnlyDep)
+
+        dependencies.add("compileOnlyApi", compileOnlyDep)
+        dependencies.add("implementation", implDep)
+        dependencies.add("include", compileOnlyDep)
     }
 }
 
 loom {
-    accessWidenerPath = file("src/main/resources/bwead-client.classtweaker")
-}
-
-fun toMinecraftCompat(version: String): String {
-    // Stable release
-    val stable = Regex("""^(\d{2})\.([1-9]\d*)(?:\.(\d+))?$""")
-
-    stable.matchEntire(version)?.let {
-        val (year, drop, _) = it.destructured
-        return "~$year.$drop"
-    }
-
-    // Prerelease
-    val pre = Regex("""^(\d{2})\.([1-9]\d*)-pre[-.](\d+)$""")
-    pre.matchEntire(version)?.let {
-        return version.replace("-pre-", "-pre.")
-    }
-
-    // Release Candidate
-    val rc = Regex("""^(\d{2})\.([1-9]\d*)-rc[-.](\d+)$""")
-    rc.matchEntire(version)?.let {
-        return version.replace("-rc-", "-rc.")
-    }
-
-    // fallback
-    return version
+    accessWidenerPath = file("src/main/resources/meteor-client.accesswidener")
 }
 
 tasks {
@@ -179,8 +157,7 @@ tasks {
             "version" to project.version,
             "build_number" to buildNumber,
             "commit" to commit,
-            "jdk_version" to libs.versions.jdk.get(),
-            "minecraft_version" to toMinecraftCompat(libs.versions.minecraft.get()),
+            "minecraft_version" to libs.versions.minecraft.get(),
             "loader_version" to libs.versions.fabric.loader.get()
         )
 
@@ -198,17 +175,17 @@ tasks {
     }
 
     jar {
-        inputs.property("archivesName", archivesBaseName)
+        inputs.property("archivesName", project.base.archivesName.get())
 
         from("LICENSE") {
-            rename { "${it}_$archivesBaseName" }
+            rename { "${it}_${inputs.properties["archivesName"]}" }
         }
 
         // Include launcher classes
-        from(launcher.output)
+        from(sourceSets["launcher"].output)
 
         manifest {
-            attributes["Main-Class"] = "bwead.bweadclient.Main"
+            attributes["Main-Class"] = "meteordevelopment.meteorclient.Main"
         }
     }
 
@@ -219,18 +196,6 @@ tasks {
                 "-Xlint:unchecked"
             )
         )
-
-        options.errorprone.enabled.set(runErrorProne)
-
-        if (runErrorProne) {
-            options.errorprone {
-                check("NullAway", net.ltgt.gradle.errorprone.CheckSeverity.ERROR)
-                option("NullAway:AnnotatedPackages", "bwead.bweadclient")
-                option("NullAway:JSpecifyMode", "true")
-                // Event handlers are discovered reflectively by Orbit.
-                option("UnusedMethod:ExcludedAnnotations", "meteordevelopment.orbit.EventHandler")
-            }
-        }
     }
 
     javadoc {
@@ -252,7 +217,7 @@ publishing {
     publications {
         create<MavenPublication>("mavenJava") {
             from(components["java"])
-            artifactId = "bwead-client"
+            artifactId = "meteor-client"
 
             version = "${libs.versions.minecraft.get()}-SNAPSHOT"
         }

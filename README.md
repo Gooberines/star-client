@@ -1,40 +1,51 @@
 
 <p align="center">
-<img src="https://meteorclient.com/icon.png" alt="bwead-client-logo" width="15%"/>
+<img src="src/main/resources/assets/meteor-client/icon.png" alt="star-client-logo" width="15%"/>
 </p>
 
-<h1 align="center">Bwead</h1>
-<p align="center">A Minecraft Fabric Utility Mod for anarchy servers.</p>
+<h1 align="center">Star Client</h1>
+<p align="center">A Minecraft Fabric Utility Mod for anarchy servers. (Minecraft 1.21.11)</p>
 
-<p align="center"><i>Bwead Client is a rebrand/fork of <a href="https://github.com/MeteorDevelopment/meteor-client">Meteor Client</a> by Meteor Development, distributed under the GNU General Public License v3.0.</i></p>
+<p align="center"><i>Star Client is a rebrand of <a href="https://github.com/MeteorDevelopment/meteor-client">Meteor Client</a>, distributed under the GNU General Public License v3.0. Internally it keeps Meteor's mod id and API so that Meteor addons remain compatible.</i></p>
+
+## Bundled addons
+Star Client ships with these Meteor addons included (jar-in-jar):
+
+- [Meteor Rejects](https://github.com/AntiCope/meteor-rejects)
+- [Meteorist](https://github.com/zgoly/Meteorist)
+- [Numby Hack](https://github.com/cqb13/Numby-Hack)
+- [Trouser Streak](https://github.com/pwnoobs/trouser-streak)
+- PowHax
+- Dino Printer
+- Meteor Extras
+- Nora Tweaks
+- Meteor+
+- Zinc / SweetMods
 
 ## Usage
 
 ### Building
-- Clone this repository
-- Run `./gradlew build` (requires JDK 21)
+- Clone this repository (requires JDK 21)
+- Build the client: `./gradlew build`
+- Bundle the addons into the jar: `python scripts/bundle_addons.py`
+- The finished jar is `build/libs/star-client-<mcversion>.jar`
 
 ### Installation
-Put the built jar from `build/libs` into your Fabric `mods` folder for the latest Minecraft version.
-
-## Contributions
-We will review and help with all reasonable pull requests as long as the guidelines below are met.
-
-- The license header must be applied to all java source code files.
-- IDE or system-related files should be added to the `.gitignore`, never committed in pull requests.
-- In general, check existing code to make sure your code matches relatively close to the code already in the project.
-- Favour readability over compactness.
-- If you need help, check out the [Google Java Style Guide](https://google.github.io/styleguide/javaguide.html) for a reference.
+Put the built jar from `build/libs` into your Fabric `mods` folder for Minecraft 1.21.11 (Fabric API required).
 
 ## Credits
-Bwead Client is based on [Meteor Client](https://github.com/MeteorDevelopment/meteor-client) by Meteor Development — all original authors retain their copyright.  
-[Cabaletta](https://github.com/cabaletta) and [WagYourTail](https://github.com/wagyourtail) for [Baritone](https://github.com/cabaletta/baritone)  
-The [Fabric Team](https://github.com/FabricMC) for [Fabric](https://github.com/FabricMC/fabric-loader) and [Yarn](https://github.com/FabricMC/yarn)
+- **Star** — Star Client (this rebrand)
+- **[MineGame159](https://github.com/MineGame159)** and Meteor Development — [Meteor Client](https://github.com/MeteorDevelopment/meteor-client), the original base this project is built on
+- The authors of the bundled addons listed above
+- [Cabaletta](https://github.com/cabaletta) and [WagYourTail](https://github.com/wagyourtail) for [Baritone](https://github.com/cabaletta/baritone)
+- The [Fabric Team](https://github.com/FabricMC) for [Fabric](https://github.com/FabricMC/fabric-loader) and [Yarn](https://github.com/FabricMC/yarn)
 
 ## Licensing
 This project is licensed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html).
 
 If you use **ANY** code from the source:
-- You must disclose the source code of your modified work and the source code you took from this project. This means you are not allowed to use code from this project (even partially) in a closed-source and/or obfuscated application.
+- You must disclose the source code of your modified work and the source code you took from this project.
 - You must state clearly and obviously to all end users that you are using code from this project.
 - Your application must also be licensed under the same license.
+
+Bundled addons remain under their respective licenses and copyrights.
